@@ -2,6 +2,7 @@ import re
 import tkinter as tk
 from tkinter import filedialog
 import bitstring
+import binascii
 
 def binary_padding(*args):
     """ 
@@ -50,21 +51,25 @@ def file_to_binary():
     file_name = re.search(filename_pattern, file_path).group()
 
     # Turn the file to its raw binary representation
-    binary_as_string = bitstring.BitArray(filename=file_path).bin
+    file_data = bitstring.BitArray(filename=file_path).bin
+
+    # Generate a CRC32 checksum
+    byte_file_data = bytes(file_data, 'utf-8')
+    checksum = binascii.crc32(byte_file_data)
     
     # Return the binary representation as a string
-    return (file_name, binary_as_string)
+    return (file_name, file_data, checksum)
 
-def binary_to_file(binary_data):
+def binary_to_file(file_tuple):
     
     """ 
     Turns a string containing binary representation of a file into a file.
 
         Parameters:
-            tuple (strings): A tuple containing a string of file name, and a string that contains the binary representation of a file
+            file_tuple (tuple): A tuple containing a file name (string), a file data; a string that contains the binary representation of a file, and a checksum
     """
 
-    file_name, binary_as_string = binary_data
+    file_name, file_data, checksum = file_tuple
 
     # Get a file name and location from user
     file_extension_pattern = '\..[^\.]+$'
@@ -85,21 +90,26 @@ def binary_to_file(binary_data):
         return
     
     # Create a new file
-    with open(user_file_name, 'wb') as file:
+    """ with open(user_file_name, 'wb') as file:
 
         # Turn bytes to a list of integers
-        bytes_list = [int(binary_as_string[i:i+8], 2) for i in range(0, len(binary_as_string), 8)]
+        bytes_list = [int(file_data[i:i+8], 2) for i in range(0, len(file_data), 8)]
 
         # Turn the list of integers to a bytearray
         bytes_array = bytearray(bytes_list)
 
         # Write the bytearray to the file
-        file.write(bytes_array)
+        file.write(bytes_array) """
+
+    # Or just create a hash value of the file and store it in a text file
+    with open("file hash value.txt", 'w') as file:
+        file.write(checksum)
+        file.write(bin(checksum).replace("0b", ""))
 
 def recv_data():
 
     """ 
-    Does something
+    Receives data from a socket.
     """
 
     pass
@@ -107,7 +117,7 @@ def recv_data():
 def send_data():
 
     """ 
-    Does something
+    Sends data to a socket.
     """
 
     pass
