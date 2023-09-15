@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import filedialog
 import bitstring
 import binascii
+import hashlib
 
 def binary_padding(*args):
     """ 
@@ -33,10 +34,10 @@ def binary_padding(*args):
 def file_to_binary():
 
     """ 
-    Requests a file from the user, converts whatever is received into its binary representation, and returns it as a string.
+    Requests a file from the user, converts whatever is received into its binary representation, and returns it as a string. To be called when choosing what data should be sent. 
 
         Returns:
-            tuple (strings): A tuple containing a string of file name, and a string that contains the binary representation of whatever file the user chose
+            tuple (strings): A tuple containing a file name string, a string that contains the binary representation of the file data the user chose, the file data checksum, and the file data hash value
     """
 
     # Hide the root window
@@ -55,21 +56,26 @@ def file_to_binary():
 
     # Generate a CRC32 checksum
     byte_file_data = bytes(file_data, 'utf-8')
-    checksum = binascii.crc32(byte_file_data)
+    checksum = str(binascii.crc32(byte_file_data))
+
+    # Generate a SHA256 hash value
+    encoded_file_data = file_data.encode('utf-8') # Encode the string
+    hash_value = str(hashlib.sha256(encoded_file_data).hexdigest()) # Generate the hash
     
     # Return the binary representation as a string
-    return (file_name, file_data, checksum)
+    return (file_name, file_data, checksum, hash_value)
 
-def binary_to_file(file_tuple):
+def binary_to_file(file_name, file_data):
     
     """ 
-    Turns a string containing binary representation of a file into a file.
+    Turns a string containing binary representation of a file into a file. To be called when data is received
 
         Parameters:
-            file_tuple (tuple): A tuple containing a file name (string), a file data; a string that contains the binary representation of a file, and a checksum
+            file_name (string): a file name , 
+            file_data (string): a string that contains the binary representation of a file, 
+            checksum (string): the checksum of the file data,
+            hash_value (string): a hash value  of the file data.
     """
-
-    file_name, file_data, checksum = file_tuple
 
     # Get a file name and location from user
     file_extension_pattern = '\..[^\.]+$'
@@ -101,10 +107,21 @@ def binary_to_file(file_tuple):
         # Write the bytearray to the file
         file.write(bytes_array) """
 
-    # Or just create a hash value of the file and store it in a text file
-    with open("file hash value.txt", 'w') as file:
-        file.write(checksum)
-        file.write(bin(checksum).replace("0b", ""))
+    # Or print the hash and checksum values
+    # Generate a CRC32 checksum
+    byte_file_data = bytes(file_data, 'utf-8')
+    checksum = str(binascii.crc32(byte_file_data))
+    print(f"Checksum: {checksum}")
+
+    # Generate a SHA256 hash value
+    encoded_file_data = file_data.encode('utf-8') # Encode the string
+    hash_value = str(hashlib.sha256(encoded_file_data).hexdigest()) # Generate the hash
+    print(f"Hash value: {hash_value}")
+
+    # Or store the hash value of the file data in a text file
+    """ with open("file hash value.txt", 'w') as file:
+        file.write(hash_value)
+        file.write(bin(hash_value).replace("0b", "")) """
 
 def recv_data():
 
