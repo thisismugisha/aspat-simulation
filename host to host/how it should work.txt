@@ -1,0 +1,13 @@
+How it'll work:
+*run code
+*socket connection is established
+*code asks if user wants to send file or request file
+------------- if user wants to send file -------------
+*code opens file dialog
+*file is chosen
+*file is turned to binary
+------------- if user wants to recv file -------------
+*code asks for file name
+*code asks if transfer should be reliable or unreliable
+------------------------------------------------------
+*binary padding is added to information that needs padding: source and destination ports, packet number, total packets number,acknowledged data (if transfer is reliable), data offset, window, and checksum.
