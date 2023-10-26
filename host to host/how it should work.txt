@@ -6,8 +6,31 @@ How it'll work:
 *code opens file dialog
 *file is chosen
 *file is turned to binary
+*file is divided into packets
 ------------- if user wants to recv file -------------
 *code asks for file name
-*code asks if transfer should be reliable or unreliable
+*code asks if transfer should be reliable or unreliable. Reliable transfer will ask the receive to acknowledge a packet they've received.
+*file name is turned to binary
 ------------------------------------------------------
 *binary padding is added to information that needs padding: source and destination ports, packet number, total packets number,acknowledged data (if transfer is reliable), data offset, window, and checksum.
+*the string meant to be sent is assembled.
+------------- if user wants to send file -------------
+*code asks receiver if they want to accept file
+*code gets receiver's maximum window (if they accepted the file transfer)
+------------- if user wants to recv file -------------
+*code asks sender if they can send file
+*code tells sender their maximum window (if they accepted the file transfer)
+
+
+---------------- when data is received ----------------
+*code gets string of binary.
+*starting from the start of the string, code gets header information: source and destination ports, packet number, total packets number,acknowledged data (if transfer is reliable), data offset, window, and checksum.
+------------------ if receiving file ------------------
+*data in first packet the code gets is the name of the file.
+*next packet it receives is amount of packets it'll get
+*subsequent packets are of the file.
+------------------- if sending file -------------------
+*code splits file into packets.
+*code sends file name to receiver
+*code sends total amount of packets to receiver
+*code sends the packets to receiver.
