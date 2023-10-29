@@ -137,9 +137,9 @@ def send_data():
     Sends data to a socket.
     """
 
-    pass
+    file_name, file_data, checksum, hash_value = file_to_binary()
 
-# Regex patterns to find specific information from a received string
+# Regex patterns to find or assemble necessary information of a string.
 source = '^(?P<src>\d{16})'
 destination = '(?P<dst>\d{16})'
 packet_number = '(?P<pkt_num>\d{32})'
