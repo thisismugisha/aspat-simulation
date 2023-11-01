@@ -45,6 +45,9 @@ start()
  """
 
 import socket
+import time
+
+HEADERSIZE = 10
 
 intraEndpoint = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 intraEndpoint.bind((socket.gethostname(), 1234))
@@ -53,6 +56,19 @@ intraEndpoint.listen(5)
 while True:
     extraEndpoint, address = intraEndpoint.accept()
     print(f"Connection from {address} has been established!")
-    msg = str(input(f"What message do you wanna send to {address[1]}? "))
+
+    msg = "Welcome to the server!"
+    msg = f'{len(msg):<{HEADERSIZE}}' + msg
+
     extraEndpoint.send(bytes(msg, "utf-8"))
-    extraEndpoint.close()
+    # extraEndpoint.close()
+
+    while True:
+        time.sleep(3)
+
+        msg = f"The time is {time.time()}!"
+        msg = f'{len(msg):<{HEADERSIZE}}' + msg
+
+        extraEndpoint.send(bytes(msg, "utf-8"))
+
+
