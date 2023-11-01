@@ -1,3 +1,4 @@
+""" 
 import socket
 import threading
 
@@ -41,3 +42,17 @@ def start():
 
 print("[STARTING]  server is starting...")
 start()
+ """
+
+import socket
+
+intraEndpoint = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+intraEndpoint.bind((socket.gethostname(), 1234))
+intraEndpoint.listen(5)
+
+while True:
+    extraEndpoint, address = intraEndpoint.accept()
+    print(f"Connection from {address} has been established!")
+    msg = str(input(f"What message do you wanna send to {address[1]}? "))
+    extraEndpoint.send(bytes(msg, "utf-8"))
+    extraEndpoint.close()

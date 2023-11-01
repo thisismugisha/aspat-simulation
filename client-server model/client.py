@@ -1,3 +1,4 @@
+""" 
 import socket
 
 HEADER = 64
@@ -21,3 +22,19 @@ def send(msg):
 
 send(str(input("What message do you want to send: ")))
 send(DISCONNECT_MESSAGE)
+ """
+
+import socket
+
+intraEndpoint = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+intraEndpoint.connect((socket.gethostname(), 1234))
+
+full_msg = ''
+while True:
+    msg = intraEndpoint.recv(8)
+    if len(msg) <= 0:
+        break
+
+    full_msg += msg.decode("utf-8")
+
+print(full_msg)
