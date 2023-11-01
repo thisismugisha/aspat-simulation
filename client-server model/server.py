@@ -1,5 +1,6 @@
-""" 
-import socket
+
+
+""" import socket
 import threading
 
 HEADER = 64
@@ -41,9 +42,9 @@ def start():
         print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 1}") # Counts active threads in the process.
 
 print("[STARTING]  server is starting...")
-start()
- """
+start() """
 
+""" 
 import socket
 import time
 
@@ -70,5 +71,4 @@ while True:
         msg = f'{len(msg):<{HEADERSIZE}}' + msg
 
         extraEndpoint.send(bytes(msg, "utf-8"))
-
-
+ """

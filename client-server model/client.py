@@ -1,3 +1,5 @@
+
+
 """ 
 import socket
 
@@ -24,7 +26,7 @@ send(str(input("What message do you want to send: ")))
 send(DISCONNECT_MESSAGE)
  """
 
-import socket
+""" import socket
 
 HEADERSIZE = 10
 
@@ -49,4 +51,4 @@ while True:
             new_msg = True
             full_msg = ''
 
-print(full_msg)
+print(full_msg) """
