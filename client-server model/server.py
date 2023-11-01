@@ -1,4 +1,34 @@
+import socket
+import threading
 
+PORT = 5050
+IP = socket.gethostbyname(socket.gethostname())
+ADDRESS = (IP, PORT)
+
+intraEndpoint = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+def find_connections():
+    intraEndpoint.bind(ADDRESS)
+
+
+def handle_endpoint(conn, addr):
+    print(f"[NEW CONNECTION] {addr} connected.")
+
+    connected = True
+    while connected:
+        msg = conn.recv(2048)
+
+def start():
+    intraEndpoint.listen()
+    while True:
+        conn, addr = intraEndpoint.accept()
+        thread = threading.Thread(target=handle_endpoint, args=(conn, addr))
+        thread.start()
+        print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 1}")
+
+print("[STARTING] server is starting...")
+find_connections()
+ 
 
 """ import socket
 import threading
