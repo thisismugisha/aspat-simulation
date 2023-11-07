@@ -2,13 +2,22 @@ import socket
 
 HEADER = 64
 PORT = 5050
-HOST = socket.gethostbyname(socket.gethostname())
-# HOST = "172.17.0.2"
+# HOST = socket.gethostbyname(socket.gethostname())
+HOST = "172.20.10.2"
 ADDRESS = (HOST, PORT)
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
 
 intraEndpoint = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+def recv_data(endpoint):
+    message_length = endpoint.recv(HEADER).decode(FORMAT)
+
+    if message_length:
+        message_length = int(message_length)
+        message = endpoint.recv(message_length).decode(FORMAT)
+
+    return message
 
 def send_data(message):
     message = message.encode(FORMAT)
@@ -17,10 +26,13 @@ def send_data(message):
     msg_length += b' ' * (HEADER - len(msg_length))
     intraEndpoint.send(msg_length)
     intraEndpoint.send(message)
+    # recvd = intraEndpoint.recv(2048).decode(FORMAT)
+    # print(recvd)
 
 def get_connection():
     intraEndpoint.connect(ADDRESS)
-    send_data(str(input("What do you wanna say? ")))
+    print(recv_data(intraEndpoint))
+    send_data("Hello world!!")
     send_data(DISCONNECT_MESSAGE)
 
 get_connection()

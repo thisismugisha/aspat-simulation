@@ -3,7 +3,8 @@ import threading
 
 HEADER = 64
 PORT = 5050
-HOST = socket.gethostbyname(socket.gethostname())
+# HOST = socket.gethostbyname(socket.gethostname())
+HOST = "172.20.10.2"
 ADDRESS = (HOST, PORT)
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
@@ -15,33 +16,38 @@ def fetch_connections():
     start_listening()
 
 
-def recv_data(conn, addr):
-    print(f"[NEW CONNECTION] {addr} connected.")
+def recv_data(endpoint, addr):
+    message_length = endpoint.recv(HEADER).decode(FORMAT)
 
-    connected = True
-    while connected:
-        msg_length = conn.recv(HEADER).decode(FORMAT)
-        if msg_length:
-            msg_length = int(msg_length)
-            msg = conn.recv(msg_length).decode(FORMAT)
+    if message_length:
+        message_length = int(message_length)
+        message = endpoint.recv(message_length).decode(FORMAT)
 
-            if msg == DISCONNECT_MESSAGE:
-                connected = False
+    return message
 
-            print(f"[{addr}] {msg}")
-    conn.close()
+def send_data(endpoint, message):
+    message = message.encode(FORMAT)
+
+    message_length = len(message)
+    message_length = str(message_length).encode(FORMAT)
+    message_length += b' ' * (HEADER - len(message_length))
+
+    endpoint.send(message_length)
+    endpoint.send(message)
 
 def start_listening():
     intraEndpoint.listen()
     print(f"[LISTENING] Host is listening on {HOST}")
     while True:
-        conn, addr = intraEndpoint.accept()
-        thread = threading.Thread(target=recv_data, args=(conn, addr))
+        endpoint, addr = intraEndpoint.accept()
+        thread = threading.Thread(target=recv_data, args=(endpoint, addr))
         thread.start()
         print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 1}")
 
 print("[STARTING] Host is starting...")
 fetch_connections()
+send_data(intraEndpoint, "Hello")
+message = recv_data(intraEndpoint)
  
 
 """ import socket
