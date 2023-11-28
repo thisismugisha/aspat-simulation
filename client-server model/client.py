@@ -17,6 +17,10 @@ def recv_data(endpoint):
         message_length = int(message_length)
         message = endpoint.recv(message_length).decode(FORMAT)
 
+    if message == DISCONNECT_MESSAGE:
+        endpoint.close()
+        return "connection closed"
+
     return message
 
 def send_data(message):
@@ -31,11 +35,27 @@ def send_data(message):
 
 def get_connection():
     intraEndpoint.connect(ADDRESS)
-    print(recv_data(intraEndpoint))
-    send_data("Hello world!!")
-    send_data(DISCONNECT_MESSAGE)
+    print("connected!")
 
 get_connection()
+connected = True
+while connected:
+    print("receiving...")
+    received = recv_data(intraEndpoint)
+    
+    if received:
+        print(received)
+        send_data("message received!")
+
+    command = str(input("What do you wanna do? "))
+
+    if command == "send":
+        message = str(input("What do you wanna send? "))
+        send_data(message)
+
+    if command == "end":
+        connected = False
+        send_data(DISCONNECT_MESSAGE)
 
 """ 
 import socket

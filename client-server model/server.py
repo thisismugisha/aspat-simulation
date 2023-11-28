@@ -16,12 +16,16 @@ def fetch_connections():
     start_listening()
 
 
-def recv_data(endpoint, addr):
+def recv_data(endpoint):
     message_length = endpoint.recv(HEADER).decode(FORMAT)
 
     if message_length:
         message_length = int(message_length)
         message = endpoint.recv(message_length).decode(FORMAT)
+
+    if message == DISCONNECT_MESSAGE:
+        endpoint.close()
+        return "connection closed"
 
     return message
 
@@ -35,19 +39,38 @@ def send_data(endpoint, message):
     endpoint.send(message_length)
     endpoint.send(message)
 
+def what_to_do(endpoint, addr):
+    connected = True
+    while connected:
+        command = str(input("What do you wanna do? "))
+
+        if command == "send":
+            message = str(input("What do you wanna send? "))
+            send_data(endpoint, message)
+
+        if command == "recv":
+            received = recv_data(endpoint)
+            print(received)
+            send_data(endpoint, "message received!")
+
+        if command == "end":
+            connected = False
+            send_data(endpoint, DISCONNECT_MESSAGE)
+
 def start_listening():
     intraEndpoint.listen()
     print(f"[LISTENING] Host is listening on {HOST}")
     while True:
         endpoint, addr = intraEndpoint.accept()
-        thread = threading.Thread(target=recv_data, args=(endpoint, addr))
+        thread = threading.Thread(target=what_to_do, args=(endpoint, addr))
         thread.start()
         print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 1}")
 
 print("[STARTING] Host is starting...")
 fetch_connections()
-send_data(intraEndpoint, "Hello")
-message = recv_data(intraEndpoint)
+
+# send_data(intraEndpoint, "Hello")
+# message = recv_data(intraEndpoint)
  
 
 """ import socket

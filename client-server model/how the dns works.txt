@@ -1,0 +1,28 @@
+-host connects to dns
+-dns sends host list of all other hosts that are connected
+-dns sends address of new host to the rest of the connected hosts using socket list
+-dns updates host list with address of new host
+-dns updates socket list with socket of new host
+-dns creates thread to constantly receive messages coming from this host
+
+------------------------------------- New host -------------------------------------
+
+-connect to dns
+-get list of all other hosts connected to dns
+-create thread where host sends messages to dns
+-create thread where host receives messages from dns
+
+-------------------------------- New host connected --------------------------------
+
+-get message from dns of address of new host that connected.
+-update host list with new host's address
+
+--------------------- Host ending connection with another host ---------------------
+
+-send disconnect message to the other host
+
+--------------------------------- Host logging off ---------------------------------
+
+-send disconnect message to dns
+-dns notifies all other hosts of disconnect
+-hosts update host list by removing disconnected hosts's address
