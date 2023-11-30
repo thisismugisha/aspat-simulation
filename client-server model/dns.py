@@ -48,55 +48,49 @@ def dns_server():
         new_endpoint, new_address = new_host
         print(f"Accepted a connection from {new_address}")
         existing_addresses = [] # Create a temporary list of hosts' existing addresses
+        message = pickle.dumps(new_address) # Pickle the address of new connection to send it to the other hosts
+
+        # Calculate the message's length
+        msg_length = len(message)
+        msg_length = str(msg_length).encode(FORMAT)
+        msg_length += b' ' * (HEADER - len(msg_length))
 
         if HOSTS: # If there are any hosts connected
             for HOST in HOSTS:
                 existing_addresses.append(HOST[1]) # Add each address in the HOSTS list to the temporary list of hosts' existing addresses
-                existing_endpoint = HOST[0] # Get the host socket. The new variable was created to make the code more readable
+                endpoint = HOST[0] # Get the host socket. The new variable was created to make the code more readable
 
-                message = pickle.dumps(new_address) # Pickle the address of new connection to send it to the other hosts    
+                endpoint.send(msg_length) # Send each host the length of the message
+                endpoint.send(message) # Send the address of the newly connected host to the rest of the hosts, one by one
 
-                # Calculate the message's length
-                msg_length = len(message)
-                msg_length = str(msg_length).encode(FORMAT)
-                msg_length += b' ' * (HEADER - len(msg_length))
+        HOSTS.append(new_host)
 
-                existing_endpoint.send(msg_length) # Send each host the length of the message
-                existing_endpoint.send(message) # Send the address of the newly connected host to the rest of the hosts, one by one
+        # Check to see if there are existing addresses to avoid sending an empty list
+        if existing_addresses:
+            message = pickle.dumps(existing_addresses) # Pickle the list to send it to the new connection
 
-        HOSTS.append(new_host)        
-        message = pickle.dumps(existing_addresses) # Pickle the list to send it to the new connection
+            # Calculate the message's length
+            msg_length = len(message) 
+            msg_length = str(msg_length).encode(FORMAT)
+            msg_length += b' ' * (HEADER - len(msg_length))
+            
+            new_endpoint.send(msg_length) # Send the new user the length of the message
+            new_endpoint.send(message) # Send the new user the list of all hosts connected
 
-        # Calculate the message's length
-        msg_length = len(message) 
-        msg_length = str(msg_length).encode(FORMAT)
-        msg_length += b' ' * (HEADER - len(msg_length))
-        
-        new_endpoint.send(msg_length) # Send the new user the length of the message
-        new_endpoint.send(message) # Send the new user the list of all hosts connected
+def broadcast_disconnect(address, HOSTS):
+    message = pickle.dumps((address, DISCONNECT_MESSAGE)) # Pickle the tuple of address and disconnect message to send it to the other hosts
 
-        """ message = address # Store the address of new connection to send it to the other hosts
+    # Calculate the message's length
+    msg_length = len(message)
+    msg_length = str(msg_length).encode(FORMAT)
+    msg_length += b' ' * (HEADER - len(msg_length))
 
-        # Calculate the message's length
-        msg_length = len(message) 
-        msg_length = str(msg_length).encode(FORMAT)
-        msg_length += b' ' * (HEADER - len(msg_length))
+    if HOSTS: # If there are any hosts connected
+        for HOST in HOSTS:
+            endpoint = HOST[0] # Get the host socket. The new variable was created to make the code more readable
 
-        if not SOCKETS: # Checks if the list is empty
-            continue
-
-        else:
-            for ENDPOINT in ENDPOINTS:
-                ENDPOINT.send(msg_length)
-                ENDPOINT.send(message) # Send the address of the newly connected host to the rest of the hosts, one by one
-
-        HOSTS.append(address) # Add the new host to the list of hosts
-        ENDPOINTS.append(endpoint) # Add the new endpoint to the list of endpoints
-        new_thread = threading.Thread(target=handle_host, args=(endpoint, address))
-        new_thread.start() """
-
-def handle_host(endpoint, address):
-    pass
+            endpoint.send(msg_length) # Send each host the length of the message
+            endpoint.send(message) # Send the address of the newly connected host to the rest of the hosts, one by one
 
 def send_data(endpoint):
     pass

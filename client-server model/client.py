@@ -1,5 +1,26 @@
 import socket
 
+PC = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+IP = "172.20.10.2"
+PORT = 3542
+FORMAT = "utf-8"
+HEADER = 2048
+DISCONNECT = "DISCONNECT"
+
+PC.connect((IP, PORT))
+connected = True
+while connected:
+    message = PC.recv(HEADER).decode(FORMAT)
+    if message:
+        print(message)
+    send = str(input("Message: "))
+    if send == DISCONNECT:
+        connected = False
+    PC.send(send.encode(FORMAT))
+
+
+""" import socket
+
 HEADER = 64
 PORT = 5050
 # HOST = socket.gethostbyname(socket.gethostname())
@@ -55,7 +76,7 @@ while connected:
 
     if command == "end":
         connected = False
-        send_data(DISCONNECT_MESSAGE)
+        send_data(DISCONNECT_MESSAGE) """
 
 """ 
 import socket

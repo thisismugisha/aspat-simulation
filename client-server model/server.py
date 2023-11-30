@@ -1,5 +1,60 @@
 import socket
 import threading
+import time
+
+PC = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+IP = "172.20.10.2"
+PORT = 3542
+FORMAT = "utf-8"
+HEADER = 2048
+DISCONNECT = "DISCONNECT"
+
+PC.bind((IP, PORT))
+PC.listen(5)
+
+def recv_data(client_socket):
+    message = client_socket.recv(HEADER).decode(FORMAT)
+    if message:
+        return message
+    
+def send_data(client_socket, request):
+    time.sleep(1)
+    print(f"[Sending] {request}")
+    client_socket.send(request.encode(FORMAT))
+    time.sleep(1)
+    print(f"[Sent] {request}\n")
+
+def handle_client(client):
+    connected = True
+    client_socket, client_addr = client
+    client_socket.send(f"Welcome to the server, {client_addr}!".encode(FORMAT))
+    while connected:
+        request = recv_data(client_socket)
+        if request == DISCONNECT:
+            connected = False
+            print(f"[Disconnecting] closing the connection with {client_addr[0]}")
+            print(f"[Disconnected]\n\n")
+        else:
+            print(f"[Received] {request}")
+            time.sleep(1)
+            send_data(client_socket, request)
+    
+    client_socket.close()
+
+quiting = False
+
+def listening():
+    while not quiting:
+        print("[Listening]...   ")
+        client = PC.accept()
+        print(f"[Connected] new client, {client[1][0]}\n")
+        handle_client(client)
+
+threading.Thread(target=listening, daemon=True).start()
+input()
+quiting = True
+""" import socket
+import threading
 
 HEADER = 64
 PORT = 5050
@@ -67,11 +122,10 @@ def start_listening():
         print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 1}")
 
 print("[STARTING] Host is starting...")
-fetch_connections()
+fetch_connections() """
 
 # send_data(intraEndpoint, "Hello")
-# message = recv_data(intraEndpoint)
- 
+# message = recv_data(intraEndpoint) 
 
 """ import socket
 import threading
