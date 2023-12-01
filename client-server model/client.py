@@ -1,4 +1,6 @@
 import socket
+import handle_files
+import pickle
 
 PC = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 IP = "172.20.10.2"
@@ -10,13 +12,16 @@ DISCONNECT = "DISCONNECT"
 PC.connect((IP, PORT))
 connected = True
 while connected:
-    message = PC.recv(HEADER).decode(FORMAT)
-    if message:
-        print(message)
-    send = str(input("Message: "))
-    if send == DISCONNECT:
-        connected = False
-    PC.send(send.encode(FORMAT))
+    # message = PC.recv(HEADER).decode(FORMAT)
+    # if message:
+    #     print(message)
+    # send = str(input("Message: "))
+    # if send == DISCONNECT:
+    #     connected = False
+    request = (0, 3)
+    PC.send(pickle.dumps(request))
+    print("sent the request")
+    connected = False
 
 
 """ import socket

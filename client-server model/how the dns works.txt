@@ -26,3 +26,11 @@
 -send disconnect message to dns
 -dns notifies all other hosts of disconnect
 -hosts update host list by removing disconnected hosts's address
+
+------------------------------------------------------------------------------------------------------------------
+-client connects to server
+--------------------- client ----------------------             --------------------- server ---------------------
+-client sends header containing crucial information      |      -server gets header containing crucial information
+-client gets file name.                                  |      -server sends file name.
+-client gets file data.                                  |      -server sends file data.
+--------------------- client ----------------------             --------------------- server ---------------------

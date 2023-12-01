@@ -1,6 +1,8 @@
 import socket
 import threading
 import time
+import handle_files
+import pickle
 
 PC = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 IP = "172.20.10.2"
@@ -8,8 +10,9 @@ PORT = 3542
 FORMAT = "utf-8"
 HEADER = 2048
 DISCONNECT = "DISCONNECT"
+ADDRESS = (IP, PORT)
 
-PC.bind((IP, PORT))
+PC.bind(ADDRESS)
 PC.listen(5)
 
 def recv_data(client_socket):
@@ -24,20 +27,65 @@ def send_data(client_socket, request):
     time.sleep(1)
     print(f"[Sent] {request}\n")
 
+""" def packets_list(file_data, window = None):
+    packets = []
+    max_packets = []
+
+    while file_data != "":
+        first_eight = file_data[:8]
+        max_packets.append(first_eight)
+        file_data = file_data[8:]
+
+    packet = ""
+    if window:
+        while max_packets:
+            for i in range(window):
+                packet += max_packets[0]
+                max_packets.pop(0)
+            packets.append(packet)
+            packet = ""
+    else:
+        return max_packets
+
+    return packets """
+
 def handle_client(client):
+
+    packet_number = 0
+    total_packets = 0
+    acknowledged_data = 0
+    window = 0
+    data = 0
+
     connected = True
     client_socket, client_addr = client
-    client_socket.send(f"Welcome to the server, {client_addr}!".encode(FORMAT))
+    # message = f"Welcome to the server, {client_addr}! What window would you prefer. "
+    # message = pickle.dumps(message)
+    # client_socket.send(message)
     while connected:
-        request = recv_data(client_socket)
+        # request = recv_data(client_socket)
+        request = handle_files.recv_data(client_socket)
+        print(f"received {request} as request")
         if request == DISCONNECT:
             connected = False
             print(f"[Disconnecting] closing the connection with {client_addr[0]}")
             print(f"[Disconnected]\n\n")
         else:
-            print(f"[Received] {request}")
-            time.sleep(1)
-            send_data(client_socket, request)
+            # print(f"[Received] {request}")
+            # time.sleep(1)
+            # send_data(client_socket, request)
+            # file_to_binary = handle_files.file_to_binary()
+            # packets = packets_list(file_to_binary[1])
+            # packet_number, total_packets, acknowledged_data, window, data = request
+
+            # if acknowledged_data == 0:
+            #     # For unreliable data transfer
+            #     handle_files.send_data(client_socket, ADDRESS, window = window)
+            # else:
+            #     # For reliable data transfer
+            #     handle_files.send_data(client_socket, ADDRESS, window = window, reliable = True)
+            handle_files.send_data(client, ADDRESS, request)
+            print(f"sent {client}, {ADDRESS}, and {request}")
     
     client_socket.close()
 
