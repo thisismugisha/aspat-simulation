@@ -65,7 +65,7 @@ def handle_client(client):
     while connected:
         # request = recv_data(client_socket)
         request = handle_files.recv_data(client_socket)
-        print(f"received {request} as request")
+        print(f"[Decoded] {request}")
         if request == DISCONNECT:
             connected = False
             print(f"[Disconnecting] closing the connection with {client_addr[0]}")
@@ -93,7 +93,7 @@ quiting = False
 
 def listening():
     while not quiting:
-        print("[Listening]...   ")
+        print("[Listening] . . .")
         client = PC.accept()
         print(f"[Connected] new client, {client[1][0]}\n")
         handle_client(client)

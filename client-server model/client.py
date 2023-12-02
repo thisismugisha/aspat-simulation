@@ -11,6 +11,9 @@ DISCONNECT = "DISCONNECT"
 
 PC.connect((IP, PORT))
 connected = True
+request = (0, 3)
+PC.send(pickle.dumps(request))
+print("sent the request")
 while connected:
     # message = PC.recv(HEADER).decode(FORMAT)
     # if message:
@@ -18,10 +21,11 @@ while connected:
     # send = str(input("Message: "))
     # if send == DISCONNECT:
     #     connected = False
-    request = (0, 3)
-    PC.send(pickle.dumps(request))
-    print("sent the request")
-    connected = False
+    received = PC.recv(2048)
+    if received:
+        received = pickle.loads(received)
+        print(received)
+    # connected = False
 
 
 """ import socket
