@@ -187,14 +187,10 @@ def open_temp_files(exists):
             binary_file.seek(0) # Go to the beginning of the file
             file_data = binary_file.read() # Read from the beginning
             print(f"new binary file: {file_data}\n")
-    else:
-        
-        with open(temp_header_file, "w") as header_file, open(temp_binary_file, "w") as binary_file:
+    else:        
+        with open(temp_header_file, "w") as header_file, open(temp_binary_file, "x"):
             header = ",".join(str(s) for s in aspat_binary_header_string) # turn to a string
             header_file.write(header)
             print(f"written the header: {header}")
-
-            binary_file.write(data)
-            print("written the binary")
 
 open_temp_files(os.path.isfile(temp_header_file) and os.path.isfile(temp_binary_file))

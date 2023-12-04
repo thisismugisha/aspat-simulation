@@ -1,0 +1,20 @@
+-client creates/opens temporary directory
+-client checks if there are temporary header and binary files
+----------------------------- if there are such files -----------------------------
+-client opens both files
+-client reads the header files to see where the last transfer left off
+---------------------------- if there are no such files ----------------------------
+-client creates both files
+-client creates header
+------------------------------------------------------------------------------------
+-client asks user if transfer should be reliable or not
+-client connects to server.
+-client sends server the header.
+-client begins to receive the stream of packets
+-client updates header and appends binary file every time a packet is received
+------------------------------------------------------------------------------------
+-client reads the binary file
+-client creates file from binaries received
+-client deletes temporary folder and everything in it.
+-client asks user if they want to receive a new file.
+-process goes back to line 1
