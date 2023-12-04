@@ -7,6 +7,9 @@ import hashlib
 import pickle
 import time
 import random
+import threading
+import os
+import shutil
 
 def binary_padding(*args):
     """ 
@@ -23,17 +26,24 @@ def binary_padding(*args):
 
     binary_string = ""
     print("[Padding] adding 0s to complete a binary word")
+    counter = 0
     for arg in args:
+        counter += 1
         binary, bit_number = arg # Unload the elements to start using them.
-        # print(f"int: {binary}, binary: {bin(binary).replace('0b', '')}, type: {type(bin(binary).replace('0b', ''))}")
-        binary = bin(binary).replace("0b", "") # Turn the decimal number into binary and remove 0b from front of the string
+        # binary = bin(binary).replace("0b", "") # Turn the integer into binary and remove 0b from front of the string
 
+        # Sanity check first. Calculate the largest possible integer given the bit word
+        max_possible_value = "1" * bit_number
+        max_possible_value = int(max_possible_value, 2)
 
-        if len(binary) < bit_number:
+        if binary <= max_possible_value:
+            binary = bin(binary).replace("0b", "") # Turn the integer into binary and remove 0b from front of the string
             binary = ("0" * (bit_number - len(binary))) + binary # Pad the binary string so the whole length is equal to the bit number
 
-        # Add the binary to the overall binary string; as long as that binary is a multiple of 8
-        binary_string += binary if len(binary) % 8 == 0 else print(f"{binary} is not a multiple of 8") 
+            # Add the binary to the overall binary string
+            binary_string += binary
+        else:
+            raise ValueError(f"The integer {binary} ({type(binary)}) is bigger than the {bit_number} bit word given. Counter: {counter}")
     
     print("[Results] Returning the binary string")
     return binary_string
@@ -49,11 +59,12 @@ def file_to_binary():
 
     # Hide the root window
     root = tk.Tk()
+    root.wm_attributes('-topmost', 1)
     root.withdraw()
 
     # Open the file dialog to select the file
     print("[File selection] Opening the file dialog to select the file")
-    file_path = filedialog.askopenfilename()
+    file_path = filedialog.askopenfilename(parent = root)
 
     # Get the file name
     print("[File name] Getting the file name")
@@ -143,20 +154,20 @@ def packets_list(file_data, window = None):
     packets = []
     max_packets = []
 
-    print(f"[File data] Dividing the file data into 8-bit packets")
+    # print(f"[File data] Dividing the file data into 8-bit packets")
     while file_data != "":
         first_eight = file_data[:8]
         max_packets.append(first_eight)
         file_data = file_data[8:]
 
     packet = ""
-    print(f"max_packets: {len(max_packets)}, window: {window}\n")
+    # print(f"max_packets: {len(max_packets)}, window: {window}\n")
     if window > 0:
         while max_packets:
             for i in range(window):
                 # if max_packets:
                 packet += max_packets[0]
-                print(f"max_packets: {len(max_packets)}")
+                # print(f"max_packets: {len(max_packets)}")
                 max_packets.pop(0)
                 if len(max_packets) == 0:
                     break
@@ -166,11 +177,47 @@ def packets_list(file_data, window = None):
             packets.append(packet)
             packet = ""
     else:
-        print("[Results] Returning max_packets list")
+        # print(f"[Results] Returning max_packets list: ")
         return max_packets
     
     print("[Results] Returning packets list")
     return packets
+
+def process_header(received_data):
+    if received_data == "DISCONNECT":
+        return "DISCONNECT"
+
+    elif type(received_data) == tuple:
+        return received_data
+
+    elif type(received_data) == str:
+        source = '^(?P<src>\d{16})'
+        destination = '(?P<dst>\d{16})'
+        packet_number = '(?P<pkt_num>\d{32})'
+        total_packets = '(?P<tot_pkt>\d{32})'
+        acknowledged_data = '(?P<ack_dat>\d{32})'
+        dataoffset = '(?P<doffset>\d{16})'
+        window = '(?P<win>\d{16})'
+        crc32 = '(?P<crc32>\d{32})'
+        data = '(?P<dat>.*)$'
+
+        aspat_packet_pattern = source + destination + packet_number + total_packets + acknowledged_data + dataoffset + window + crc32 + data
+
+        match = re.search(aspat_packet_pattern, received_data)
+        
+        if match:
+            source = int(match.group('src'), 2)
+            destination = int(match.group('dst'), 2)
+            packet_number = int(match.group('pkt_num'), 2)
+            total_packets = int(match.group('tot_pkt'), 2)
+            acknowledged_data = int(match.group('ack_dat'), 2)
+            dataoffset = int(match.group('doffset'), 2)
+            window = int(match.group('win'), 2)
+            crc32 = int(match.group('crc32'), 2)
+            data = match.group('dat')
+            
+            # return (f"\nsource: {source}, \ndestination: {destination}, \npacket_number: {packet_number}, \ntotal_packets: {total_packets}, \nacknowledged_data: {acknowledged_data}, \ndataoffset: {dataoffset}, \nwindow: {window}, \ncrc32: {crc32}, \ndata: {data}")
+            return (source, destination, packet_number, total_packets, acknowledged_data, dataoffset, window, crc32, data)
 
 def recv_data(client, header = None, file_data = None, file_name = None):
 
@@ -178,62 +225,60 @@ def recv_data(client, header = None, file_data = None, file_name = None):
     Receives data from a socket.
     """
 
-    client_socket = client
-    received_data = ""
-    if header:
-        received_data = client_socket.recv(header)
-    else:
-        received_data = client_socket.recv(64)
+    client_socket, client_addr = client
 
-    print(f"[Received] {received_data}")
-    received_data = pickle.loads(received_data)
+    try:
+        received_data = client_socket.recv(2048)  
+        if received_data:
+            print(f"[Received] {received_data}")
+            received_data = pickle.loads(received_data)
 
-    if received_data == "DISCONNECT":
-        return "DISCONNECT"
-    
-    # if received_data == type(tuple):
-    #     return received_data
+            processed_data = process_header(received_data)
+            if processed_data == "DISCONNECT":                
+                client_socket.close()
+                client_socket.send(pickle.dumps("DISCONNECT"))
 
-    # Regex patterns to find or assemble necessary information of a string.
-    """ source = '^(?P<src>\d{16})'
-    destination = '(?P<dst>\d{16})'
-    packet_number = '(?P<pkt_num>\d{32})'
-    total_packets = '(?P<tot_pkt>\d{32})'
-    acknowledged_data = '(?P<ack_dat>\d{32})'
-    dataoffset = '(?P<doffset>\d{16})'
-    window = '(?P<win>\d{16})'
-    crc32 = '(?P<crc32>\d{32})'
-    data = '(?P<dat>.*)$'
+            return processed_data
 
-    aspat_packet_pattern = source + destination + packet_number + total_packets + acknowledged_data + dataoffset + window + crc32 + data
+            """ if received_data == "DISCONNECT":
+                client_socket.close()
+                client_socket.send(pickle.dumps("DISCONNECT"))
+                return "DISCONNECT"
+            
+            elif type(received_data) == tuple:
+                return received_data
+            
+            elif type(received_data) == str:
+                source = '^(?P<src>\d{16})'
+                destination = '(?P<dst>\d{16})'
+                packet_number = '(?P<pkt_num>\d{32})'
+                total_packets = '(?P<tot_pkt>\d{32})'
+                acknowledged_data = '(?P<ack_dat>\d{32})'
+                dataoffset = '(?P<doffset>\d{16})'
+                window = '(?P<win>\d{16})'
+                crc32 = '(?P<crc32>\d{32})'
+                data = '(?P<dat>.*)$'
 
-    match = re.search(aspat_packet_pattern, received_data)
-    
-    if match:
-        source = int(match.group('src'))
-        destination = int(match.group('dst'))
-        packet_number = int(match.group('pkt_num'))
-        total_packets = int(match.group('tot_pkt'))
-        acknowledged_data = int(match.group('ack_dat'))
-        dataoffset = int(match.group('doffset'))
-        window = int(match.group('win'))
-        crc32 = int(match.group('crc32'))
-        data = match.group('dat')
+                aspat_packet_pattern = source + destination + packet_number + total_packets + acknowledged_data + dataoffset + window + crc32 + data
 
-        # binary_to_file(file_name, file_data, checksum = crc32)
-        # print(f"A file called {file_name} has been created")
-
-        # if file_name:
-        #     # Data is a file name
-        #     return (packet_number, total_packets, acknowledged_data, window, data)
-
-        # else:
-        #     # Data is a file
-        #     binary_to_file(file_name, file_data, checksum = crc32)
-        return (packet_number, total_packets, acknowledged_data, window) """
-
-        # return True
-    return received_data
+                match = re.search(aspat_packet_pattern, received_data)
+                
+                if match:
+                    source = int(match.group('src'))
+                    destination = int(match.group('dst'))
+                    packet_number = int(match.group('pkt_num'))
+                    total_packets = int(match.group('tot_pkt'))
+                    acknowledged_data = int(match.group('ack_dat'))
+                    dataoffset = int(match.group('doffset'))
+                    window = int(match.group('win'))
+                    crc32 = int(match.group('crc32'))
+                    data = match.group('dat')
+                    
+                    return (source, destination, packet_number, total_packets, acknowledged_data, dataoffset, window, crc32, data) """
+        else:
+            print("Nothing has been received") 
+    except (ConnectionResetError, ConnectionAbortedError):
+        return
 
 def send_data(client, addr, request):
 
@@ -281,37 +326,39 @@ def send_data(client, addr, request):
     # Prepare the packets
     print("[Packets] preparing to get packets")
     packets = packets_list(file_data, window=win)
-    print(f"[Packets] Got packets: {len(packets)}")
+    print(f"[Packets] packets list: {len(packets)}")
     pkt_num = int(1)
     tot_pkt = int(len(packets))
 
     aspat_binary_header_string = binary_padding((src, 16), (dst, 16), (pkt_num, 32), (tot_pkt, 32), (ack_dat, 32), (doffset, 16), (win, 16), (crc32, 32))
-    print(f"\n[ASPAT header] Created the header: {aspat_binary_header_string}")
-    # print(len(aspat_binary_header_string)/8)
+    print(f"\n[ASPAT header] created the header: {aspat_binary_header_string}")
 
-    # Prepare the packets
-    # packets = packets_list(file_data, window=window)
+    print("-" * 50)
 
     if acknowledged_data == 0:
         # For unreliable data transfer
         print("\n[Transfer type] Data transfer is unreliable\n")
         for packet in range (pkt_num, tot_pkt):
-            message = aspat_binary_header_string + packets[packet]
-            print("[Message] Combined the header with the data")
+            message = aspat_binary_header_string + packets[(pkt_num - 1)]
+            print(f"[Message] Combined the header with the data")
 
             message = pickle.dumps(message)
             print("[Encode] Encoded the message to be sent")
 
-            client_socket.send(message)
-            print("[Sent] Sent the message")
-            aspat_binary_header_string = binary_padding((src, 16), (dst, 16), (packet, 32), (tot_pkt, 32), (0, 32), (doffset, 16), (win, 16), (crc32, 32))
-            print(f"[Packet count] Sent {packet} of {tot_pkt}\n\n")
+            try:
+                client_socket.send(message)
+                print("[Sent] Sent the message")
+            except (ConnectionResetError, ConnectionAbortedError):
+                return
+            
+            aspat_binary_header_string = binary_padding((src, 16), (dst, 16), (pkt_num, 32), (tot_pkt, 32), (0, 32), (doffset, 16), (win, 16), (crc32, 32))
+            print(f"[Packet count] Sent {pkt_num} of {tot_pkt}\n\n")
             time.sleep(random.randint(1, 3))
     else:
         # For reliable data transfer
         print("\n[Transfer type] Data transfer is reliable\n")
         for packet in range (pkt_num, tot_pkt):
-            message = aspat_binary_header_string + packets[packet]
+            message = aspat_binary_header_string + packets[(pkt_num - 1)]
             print("[Message] Combined the header with the data")
 
             message = pickle.dumps(message)
@@ -319,17 +366,17 @@ def send_data(client, addr, request):
 
             client_socket.send(message)
             print("[Sent] Sent the message")
-            print(f"[Packet count] Sent {packet} of {tot_pkt}")
+            print(f"[Packet count] Sent {pkt_num} of {tot_pkt}")
             time.sleep(random.randint(1, 3))
             
-            print("-" *50)
+            print(" " * 5 + "-" * 10 + " " * 5)
             ack_dat = client_socket.recv(64) # Receive the ack
             print("[Acknowledgement] Received the ack")
 
             ack_dat = pickle.loads(ack_dat)
             print("[Decode] Decoded the ack")
 
-            aspat_binary_header_string = binary_padding((src, 16), (dst, 16), (packet, 32), (tot_pkt, 32), (ack_dat, 32), (doffset, 16), (win, 16), (crc32, 32))
+            aspat_binary_header_string = binary_padding((src, 16), (dst, 16), (pkt_num, 32), (tot_pkt, 32), (ack_dat, 32), (doffset, 16), (win, 16), (crc32, 32))
 
 # def packet_list(file_data):
 #     length = len(file_data)

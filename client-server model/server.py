@@ -27,67 +27,25 @@ def send_data(client_socket, request):
     time.sleep(1)
     print(f"[Sent] {request}\n")
 
-""" def packets_list(file_data, window = None):
-    packets = []
-    max_packets = []
-
-    while file_data != "":
-        first_eight = file_data[:8]
-        max_packets.append(first_eight)
-        file_data = file_data[8:]
-
-    packet = ""
-    if window:
-        while max_packets:
-            for i in range(window):
-                packet += max_packets[0]
-                max_packets.pop(0)
-            packets.append(packet)
-            packet = ""
-    else:
-        return max_packets
-
-    return packets """
-
 def handle_client(client):
-
-    packet_number = 0
-    total_packets = 0
-    acknowledged_data = 0
-    window = 0
-    data = 0
-
     connected = True
-    client_socket, client_addr = client
-    # message = f"Welcome to the server, {client_addr}! What window would you prefer. "
-    # message = pickle.dumps(message)
-    # client_socket.send(message)
-    while connected:
-        # request = recv_data(client_socket)
-        request = handle_files.recv_data(client_socket)
-        print(f"[Decoded] {request}")
-        if request == DISCONNECT:
-            connected = False
-            print(f"[Disconnecting] closing the connection with {client_addr[0]}")
-            print(f"[Disconnected]\n\n")
-        else:
-            # print(f"[Received] {request}")
-            # time.sleep(1)
-            # send_data(client_socket, request)
-            # file_to_binary = handle_files.file_to_binary()
-            # packets = packets_list(file_to_binary[1])
-            # packet_number, total_packets, acknowledged_data, window, data = request
+    # client_socket, client_addr = client
 
-            # if acknowledged_data == 0:
-            #     # For unreliable data transfer
-            #     handle_files.send_data(client_socket, ADDRESS, window = window)
-            # else:
-            #     # For reliable data transfer
-            #     handle_files.send_data(client_socket, ADDRESS, window = window, reliable = True)
-            handle_files.send_data(client, ADDRESS, request)
-            print(f"sent {client}, {ADDRESS}, and {request}")
-    
-    client_socket.close()
+    while connected:
+        print("[Listening] ready to receive . . .")
+        request = handle_files.recv_data(client)
+        if request == DISCONNECT or request == None:
+            connected = False
+            print("\n" + (" " * 15) + ("-" * 15) + (" " * 15))
+            print(f"[Disconnecting] closing the connection with {client[1][0]}, request was {request}")
+            print(f"[Disconnected]")
+            print((" " * 15) + ("-" * 15) + (" " * 15) + "\n\n")
+        else:
+            try:
+                print(f"[Decoded] {request}")
+                handle_files.send_data(client, ADDRESS, request)
+            except ConnectionResetError:
+                connected = False
 
 quiting = False
 
@@ -96,11 +54,25 @@ def listening():
         print("[Listening] . . .")
         client = PC.accept()
         print(f"[Connected] new client, {client[1][0]}\n")
-        handle_client(client)
+        try:
+            handle_client(client)
+        except ConnectionResetError:
+            print("\n" + (" " * 15) + ("-" * 15) + (" " * 15))
+            print(f"[Disconnecting] closing the connection with {client[1][0]}")
+            print(f"[Disconnected]")
+            print((" " * 15) + ("-" * 15) + (" " * 15) + "\n\n")
 
 threading.Thread(target=listening, daemon=True).start()
-input()
-quiting = True
+
+# So long as there's no KeyboardInterrupt, it will continue to listen
+try:
+    user = input("")
+    while user != KeyboardInterrupt:
+        user = input("")
+except KeyboardInterrupt:
+    print("Exiting...")
+    quiting = True
+
 """ import socket
 import threading
 
@@ -171,9 +143,6 @@ def start_listening():
 
 print("[STARTING] Host is starting...")
 fetch_connections() """
-
-# send_data(intraEndpoint, "Hello")
-# message = recv_data(intraEndpoint) 
 
 """ import socket
 import threading

@@ -1,6 +1,8 @@
 import socket
 import handle_files
 import pickle
+import os
+import shutil
 
 PC = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 IP = "172.20.10.2"
@@ -9,24 +11,41 @@ FORMAT = "utf-8"
 HEADER = 2048
 DISCONNECT = "DISCONNECT"
 
-PC.connect((IP, PORT))
-connected = True
-request = (0, 3)
-PC.send(pickle.dumps(request))
-print("sent the request")
-while connected:
-    # message = PC.recv(HEADER).decode(FORMAT)
-    # if message:
-    #     print(message)
-    # send = str(input("Message: "))
-    # if send == DISCONNECT:
-    #     connected = False
-    received = PC.recv(2048)
-    if received:
-        received = pickle.loads(received)
-        print(received)
-    # connected = False
+def file_request():
+    pass
 
+try:
+    PC.connect((IP, PORT))
+    connected = True
+    request = (0, 3)
+    PC.send(pickle.dumps(request))
+    print("sent the request")
+    while connected:
+        # message = PC.recv(HEADER).decode(FORMAT)
+        # if message:
+        #     print(message)
+        # send = str(input("Message: "))
+        # if send == DISCONNECT:
+        #     connected = False
+        try:
+            try:
+                received = PC.recv(2048)
+            except (KeyboardInterrupt, ConnectionResetError):
+                connected = False
+                print(f"[Disconnected] connection closed")
+            if received:
+                received = pickle.loads(received)
+                if received == DISCONNECT:
+                    connected = False
+                    print(f"[Disconnected] connection closed")
+                else:
+                    print(received)
+        except (KeyboardInterrupt, ConnectionResetError):
+            print(f"[Disconnected] connection closed\n")
+            print("Exiting...")
+            connected = False
+except ConnectionRefusedError:
+    print("\nCouldn\'t connect\n")
 
 """ import socket
 
