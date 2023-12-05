@@ -1,8 +1,8 @@
--client creates/opens temporary directory
--client checks if there are temporary header and binary files
+✔-client creates/opens temporary directory
+✔-client checks if there are temporary header and binary files
 ----------------------------- if there are such files -----------------------------
--client opens both files
--client reads the header files to see where the last transfer left off
+✔-client opens both files
+✔-client reads the header files to see where the last transfer left off
 ---------------------------- if there are no such files ----------------------------
 -client creates both files
 -client creates header

@@ -48,7 +48,7 @@ def binary_padding(*args):
     print("[Results] Returning the binary string")
     return binary_string
 
-def file_to_binary():
+def file_to_binary(received_file = None):
 
     """ 
     Requests a file from the user, converts whatever is received into its binary representation, and returns it as a string. To be called when choosing what data should be sent. 
@@ -62,9 +62,13 @@ def file_to_binary():
     root.wm_attributes('-topmost', 1)
     root.withdraw()
 
-    # Open the file dialog to select the file
-    print("[File selection] Opening the file dialog to select the file")
-    file_path = filedialog.askopenfilename(parent = root)
+    if received_file not in ["_", "-", ""] and type(received_file) == tuple:
+        # Get the file path and the file name
+        file_path = received_file
+    else:
+        # Open the file dialog to select the file
+        print("[File selection] Opening the file dialog to select the file")
+        file_path = filedialog.askopenfilename(parent = root)
 
     # Get the file name
     print("[File name] Getting the file name")
@@ -79,16 +83,16 @@ def file_to_binary():
     # Generate a CRC32 checksum
     print("[Error detection] Generating a CRC32 checksum")
     byte_file_data = bytes(file_data, 'utf-8')
-    checksum = str(binascii.crc32(byte_file_data))
+    checksum = binascii.crc32(byte_file_data)
     print(f"[Checksum] {checksum}")
 
     # Generate a SHA256 hash value
     encoded_file_data = file_data.encode('utf-8') # Encode the string
-    hash_value = str(hashlib.sha256(encoded_file_data).hexdigest()) # Generate the hash
+    hash_value = hashlib.sha256(encoded_file_data).hexdigest() # Generate the hash
     
     # Return the binary representation as a string
     print("[Results] Returning the binary representation as a string")
-    return (file_name, file_data, checksum, hash_value)
+    return ((file_path, file_name), file_data, checksum, hash_value)
 
 def binary_to_file(file_name, file_data, checksum = None, hash_value = None):
     
@@ -108,6 +112,11 @@ def binary_to_file(file_name, file_data, checksum = None, hash_value = None):
 
     suggested_file_name = file_name.replace(file_extension, "")
     save_as_type = file_extension.replace(".", "").upper()
+
+    # Hide the root window
+    root = tk.Tk()
+    root.wm_attributes('-topmost', 1)
+    root.withdraw()
 
     user_file_name = filedialog.asksaveasfilename(
                                                   initialfile = suggested_file_name,
@@ -232,13 +241,16 @@ def recv_data(client, header = None, file_data = None, file_name = None):
         if received_data:
             print(f"[Received] {received_data}")
             received_data = pickle.loads(received_data)
+            # print(f"Unpickled: {len(received_data)} {received_data}")
+            # print(f"Unpickled: {pickle.loads(received_data)}")
 
             processed_data = process_header(received_data)
             if processed_data == "DISCONNECT":                
                 client_socket.close()
                 client_socket.send(pickle.dumps("DISCONNECT"))
 
-            return processed_data
+            # print(f"Unpickled {received_data}")
+            return received_data
 
             """ if received_data == "DISCONNECT":
                 client_socket.close()
@@ -288,21 +300,21 @@ def send_data(client, addr, request):
 
     client_socket, client_addr = client
     IP, PORT = addr
-    acknowledged_data, window = request
-    print(f"[Labelled] acknowledged_data: {acknowledged_data}, window: {window}")
+    source, destination, packet_number, total_packets, acknowledged_data, dataoffset, window, crc32, file_path = request
+    # print(f"[Labelled] acknowledged_data: {acknowledged_data}, window: {window}")
 
     # Getting the file
-    print("[Fetching] Getting the file to be sent")
-    file_name, file_data, checksum, hash_value = file_to_binary()
+    print("[File] Getting the file to be sent")
+    (file_path, file_name), file_data, checksum, hash_value = file_to_binary(file_path)
 
     # Send the file name
-    message = pickle.dumps(file_name)
-    print(f"[Encode] pickled the file name: {file_name}")
-    client_socket.send(message)
-    print(f"[Send] sent the file name")
+    # message = pickle.dumps(file_name)
+    # print(f"[Encode] pickled the file name: {file_name}")
+    # client_socket.send(message)
+    # print(f"[Send] sent the file name")
     
-    data_length = len(file_data)
-    max_packets = int(data_length / 8) if data_length % 8 == 0 else data_length / 8
+    # data_length = len(file_data)
+    # max_packets = int(data_length / 8) if data_length % 8 == 0 else data_length / 8
 
     # Regex patterns to find or assemble necessary information of a string.
     # source = '^(?P<src>\d{16})'
@@ -315,68 +327,99 @@ def send_data(client, addr, request):
     # crc32 = '(?P<crc32>\d{32})'
     # data = '(?P<dat>.*)$'
 
-    src = int(PORT) # source port
-    dst = int(client_addr[1]) # destination port
-    ack_dat = int(acknowledged_data)
-    doffset = int(192)
-    win = int(window) if window <= 65535 else 0
-    crc32 = int(checksum)
+    source = PORT # source port
+    destination = client_addr[1] # destination port
+    # ack_dat = acknowledged_data
+    dataoffset = 192
+    # win = int(window) # if window <= 65535 else 0
+    crc32 = checksum
     # data = "".join(format(ord(character), 'b') for character in file_name)
 
     # Prepare the packets
     print("[Packets] preparing to get packets")
-    packets = packets_list(file_data, window=win)
-    print(f"[Packets] packets list: {len(packets)}")
-    pkt_num = int(1)
-    tot_pkt = int(len(packets))
+    packets = packets_list(file_data, window=window)
+    total_packets = len(packets)
+    print(f"[Packets] packets length: {total_packets}")
+    # pkt_num = packet_number
 
-    aspat_binary_header_string = binary_padding((src, 16), (dst, 16), (pkt_num, 32), (tot_pkt, 32), (ack_dat, 32), (doffset, 16), (win, 16), (crc32, 32))
-    print(f"\n[ASPAT header] created the header: {aspat_binary_header_string}")
+    # aspat_binary_header_string = binary_padding((src, 16), (dst, 16), (pkt_num, 32), (tot_pkt, 32), (ack_dat, 32), (doffset, 16), (win, 16), (crc32, 32))
+    header = [source, destination, packet_number, total_packets, acknowledged_data, dataoffset, window, crc32, file_path]
+
+    print(f"\n[ASPAT header] created the header: \nsource: {source}, destination: {destination}, packet_number: {packet_number}, total_packets: {total_packets}, acknowledged_data: {acknowledged_data}, dataoffset: {dataoffset}, window: {window}, crc32: {crc32}, file_path: {file_path}")
+        
+    # print(f"    source: {source}")
+    # print(f"    destination: {destination}")
+    # print(f"    packet_number: {packet_number}")
+    # print(f"    total_packets: {total_packets}")
+    # print(f"    acknowledged_data: {acknowledged_data}")
+    # print(f"    dataoffset: {dataoffset}")
+    # print(f"    window: {window}")
+    # print(f"    crc32: {crc32}")
+    # print(f"    file_name: {file_path}")
+
+    # Send the file name
+    message = pickle.dumps(header)
+    # print(f"[ASPAT header] pickled the header")
+    client_socket.send(message)
+    print(f"[ASPAT header] pickled and sent the header: {len(message)} {message}")
 
     print("-" * 50)
 
     if acknowledged_data == 0:
         # For unreliable data transfer
         print("\n[Transfer type] Data transfer is unreliable\n")
-        for packet in range (pkt_num, tot_pkt):
-            message = aspat_binary_header_string + packets[(pkt_num - 1)]
-            print(f"[Message] Combined the header with the data")
+        for packet in range(packet_number, total_packets):
+            header = [source, destination, packet, total_packets, acknowledged_data, dataoffset, window, crc32, file_path]
+            print(f"header: {header}")
+            message = header.copy()
+            message.append(packets[packet])
+            print(f"[Message] Combined the header with the data: {message}")
 
             message = pickle.dumps(message)
-            print("[Encode] Encoded the message to be sent")
+            print(f"[Encode] Encoded the message to be sent: {message}")
 
             try:
                 client_socket.send(message)
-                print("[Sent] Sent the message")
+                print(f"[Sent] Sent {message}")
             except (ConnectionResetError, ConnectionAbortedError):
-                return
+                return            
             
-            aspat_binary_header_string = binary_padding((src, 16), (dst, 16), (pkt_num, 32), (tot_pkt, 32), (0, 32), (doffset, 16), (win, 16), (crc32, 32))
-            print(f"[Packet count] Sent {pkt_num} of {tot_pkt}\n\n")
+            print(f"[Packet count] Sent {(packet + 1)} of {total_packets}\n\n")
             time.sleep(random.randint(1, 3))
     else:
         # For reliable data transfer
         print("\n[Transfer type] Data transfer is reliable\n")
-        for packet in range (pkt_num, tot_pkt):
-            message = aspat_binary_header_string + packets[(pkt_num - 1)]
-            print("[Message] Combined the header with the data")
+        for packet in range(packet_number, total_packets):
+            header = [source, destination, packet, total_packets, acknowledged_data, dataoffset, window, crc32, file_path]
+            print(f"header: {header}")
+            message = header.copy()
+            message.append(packets[packet])
+            print(f"[Message] Combined the header with the data: {message}")
 
             message = pickle.dumps(message)
-            print("[Encode] Encoded the message to be sent")
+            print(f"[Encode] Encoded the message to be sent: {message}")
 
-            client_socket.send(message)
-            print("[Sent] Sent the message")
-            print(f"[Packet count] Sent {pkt_num} of {tot_pkt}")
+            try:
+                client_socket.send(message)
+                print("[Sent] Sent the message")
+            except (KeyboardInterrupt, ConnectionResetError, ConnectionAbortedError):
+                return
+            
+            print(f"[Packet count] Sent {(packet + 1)} of {total_packets}\n\n")
             time.sleep(random.randint(1, 3))
             
-            print(" " * 5 + "-" * 10 + " " * 5)
-            ack_dat = client_socket.recv(64) # Receive the ack
-            print("[Acknowledgement] Received the ack")
+            print("\n" + (" " * 5) + ("-" * 10) + (" " * 5))
+            # ack_dat = client_socket.recv(2048) # Receive the ack
+            try:
+                ack_dat = client_socket.recv(2048)
+                ack_dat = pickle.loads(ack_dat)
+                source, destination, packet, total_packets, acknowledged_data, dataoffset, window, crc32, file_path = ack_dat
+                print(f"[Acknowledgement] source: {source}, destination: {destination}, packet: {packet}, total_packets: {total_packets}, acknowledged_data: {acknowledged_data}, dataoffset: {dataoffset}, window: {window}, crc32: {crc32}, file_path: {file_path}")
+                print((" " * 5) + ("-" * 10) + (" " * 5) + "\n")
+            except (KeyboardInterrupt, ConnectionResetError, ConnectionAbortedError):
+                return
 
-            ack_dat = pickle.loads(ack_dat)
-            print("[Decode] Decoded the ack")
-
-            aspat_binary_header_string = binary_padding((src, 16), (dst, 16), (pkt_num, 32), (tot_pkt, 32), (ack_dat, 32), (doffset, 16), (win, 16), (crc32, 32))
+            # aspat_binary_header_string = binary_padding((src, 16), (dst, 16), (pkt_num, 32), (tot_pkt, 32), (ack_dat, 32), (doffset, 16), (win, 16), (crc32, 32))
 
 # def packet_list(file_data):
 #     length = len(file_data)

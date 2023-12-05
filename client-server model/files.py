@@ -194,3 +194,8 @@ def open_temp_files(exists):
             print(f"written the header: {header}")
 
 open_temp_files(os.path.isfile(temp_header_file) and os.path.isfile(temp_binary_file))
+
+def rm_temp_dir(temp_dir):
+    print("deleting the temporary folder")
+    shutil.rmtree(temp_dir)
+    print("deleted")
