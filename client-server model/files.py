@@ -4,6 +4,7 @@ import pickle
 import os
 import shutil
 from pathlib import Path
+import time
 
 def process_header(received_data):
     if received_data == "DISCONNECT":
@@ -151,6 +152,7 @@ message.append(data)
 temp_dir = "./temp_dir/"
 temp_header_file = temp_dir + "temp_header_file.txt"
 temp_binary_file = temp_dir + "temp_binary_file.txt"
+delete_order = temp_dir + "delete_order.txt"
 
 os.makedirs(os.path.dirname(temp_dir), exist_ok=True)
 
@@ -193,7 +195,15 @@ def open_temp_files(exists):
             header_file.write(header)
             print(f"written the header: {header}")
 
-open_temp_files(os.path.isfile(temp_header_file) and os.path.isfile(temp_binary_file))
+# open_temp_files(os.path.isfile(temp_header_file) and os.path.isfile(temp_binary_file))
+does_exist = os.path.isfile(delete_order)
+print("checking if a delete order exists")
+while not does_exist:
+    does_exist = os.path.isfile(delete_order)
+    print(does_exist)
+    time.sleep(1)
+    
+print("it does now!")
 
 def rm_temp_dir(temp_dir):
     print("deleting the temporary folder")

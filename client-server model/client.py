@@ -5,12 +5,14 @@ import os
 import shutil
 import threading
 import re
+import time
 
 # Variables required for file manipulation
 pattern = r',?([0-9]+),?'
 temp_dir = "./temp_dir/"
 temp_header_file = temp_dir + "temp_header_file.txt"
 temp_binary_file = temp_dir + "temp_binary_file.txt"
+delete_order = temp_dir + "delete_order.txt"
 
 # Variables required for socket connection
 PC = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -23,9 +25,61 @@ DISCONNECT = "DISCONNECT"
 quiting = False
 
 def rm_temp_dir(temp_dir):
-    print("deleting the temporary folder")
-    shutil.rmtree(temp_dir)
-    print("deleted")
+    deleted = False
+    does_exist = os.path.isfile(delete_order)
+    while not does_exist:
+        does_exist = os.path.isfile(delete_order)
+    
+    print(f"The delete order does exist: {does_exist}")
+
+    with open(delete_order, "r") as delete_file:
+        delete = delete_file.read()
+
+        while not deleted:
+            time.sleep(0.5)
+            if delete == 1:
+                print("deleting the temporary folder")
+                shutil.rmtree(temp_dir)
+                print("deleted")
+                deleted = True
+                # return deleted
+
+def previous_transfer(header_file, binary_file):
+    print("Going to the beginning of the binary file")
+    binary_file.seek(0) # Go to the beginning of the file
+    file_data = binary_file.read() # Read from the beginning
+    print(f"file data: {file_data}")
+    
+    # print("Reading the header file")
+    # header_string = header_file.read() # Read what's in it
+    # print(f"header string: {header_string}")
+    # header = [int(i) for i in re.findall(pattern, header_string)] # turn string back to a list (except the file name)
+
+    print("[Header] reading the header file")
+    header_string = header_file.read() # Read what's in it
+    print(f"header string: {header_string}")
+    header = [int(i) for i in re.findall(pattern, header_string)] # turn string back to a list (except the file name)
+    
+    file_path = re.findall(r'[^,]+$', header_string)[0] # Retrieve the file path
+    print(f"file path: {file_path}")
+    header.append(file_path) # add the file path
+    print(f"header: {header}")
+
+    if (header[2] + 1) == header[3]:
+        # Get the file name
+        filename_pattern = '[^/]+$' # Match any 1 or more characters that is not a forward slash till the end of the string
+        file_name = re.search(filename_pattern, file_path).group()
+        print(f"file name {file_name}")
+        handle_files.binary_to_file(file_name, file_data)
+        print("file created")
+
+        delete = input("Delete the temporary file? [0] for no, [1] for yes")
+        if delete == 1:
+            rm_temp_dir(temp_dir)
+        return True
+    return header
+
+# delete = 0
 
 def start():
     os.makedirs(os.path.dirname(temp_dir), exist_ok=True) # create/open temporary directory
@@ -36,13 +90,43 @@ def start():
 
     if exists:
         # Both temporary files are opened
-        with open(temp_header_file, "r+") as header_file, open(temp_binary_file, "a+") as binary_file:
+        with open(temp_header_file, "r+") as header_file, open(temp_binary_file, "a+") as binary_file, open(delete_order, "w") as delete_file:            
+            
             # --------------------------------------- header file ---------------------------------------
+            # print("[Header] reading the header file")
+            # header_string = header_file.read() # Read what's in it
+            # print(f"header string: {header_string}")
+            # header = [int(i) for i in re.findall(pattern, header_string)] # turn string back to a list (except the file name)
+            # # header.append(re.findall(r'\'?.\'?$', header_string)[0]) # add the file name
+            # header.append(re.findall(r'[^,]+$', header_string)[0]) # add the file name
+
+            # Check the previous progress
+            print("[Data] reading the binary file")
+            binary_file.seek(0) # Go to the beginning of the file
+            file_data = binary_file.read() # Read from the beginning
+            print(f"file data: {file_data}")
+
             print("[Header] reading the header file")
+            header_file.seek(0) # Go to the beginning of the file
             header_string = header_file.read() # Read what's in it
             print(f"header string: {header_string}")
             header = [int(i) for i in re.findall(pattern, header_string)] # turn string back to a list (except the file name)
-            header.append(re.findall(r'\'?.\'?$', header_string)[0]) # add the file name
+            
+            file_path = re.findall(r'[^,]+$', header_string)[0] # Retrieve the file path
+            print(f"file path: {file_path}")
+            header.append(file_path) # add the file path
+            print(f"header: {header}")
+
+            if (header[2] + 1) == header[3]:
+                # Get the file name
+                filename_pattern = '[^/]+$' # Match any 1 or more characters that is not a forward slash till the end of the string
+                file_name = re.search(filename_pattern, file_path).group()
+                print(f"file name {file_name}")
+                handle_files.binary_to_file(file_name, file_data)
+                print("file created")
+                print("Exiting...")
+                return True
+            
             print("[Header] Unpacking the header")
             source, destination, packet_number, total_packets, acknowledged_data, dataoffset, window, crc32, file_path = header # Unbox all the variables
 
@@ -135,7 +219,7 @@ def start():
                         file_name = re.search(filename_pattern, file_path).group()
                         handle_files.binary_to_file(file_name, file_data) """
 
-                        print("Going to the beginning of the binary file")
+                        """ print("Going to the beginning of the binary file")
                         binary_file.seek(0) # Go to the beginning of the file
                         file_data = binary_file.read() # Read from the beginning
                         print(f"file data: {file_data}")
@@ -158,7 +242,34 @@ def start():
 
                         delete = input("Delete the temporary file? [0] for no, [1] for yes")
                         if delete == 1:
-                            rm_temp_dir(temp_dir)
+                            rm_temp_dir(temp_dir) """
+                        # start()
+                        # Check the previous progress
+                        print("[Data] reading the binary file")
+                        binary_file.seek(0) # Go to the beginning of the file
+                        file_data = binary_file.read() # Read from the beginning
+                        print(f"file data: {file_data}")
+
+                        print("[Header] reading the header file")
+                        header_file.seek(0) # Go to the beginning of the file
+                        header_string = header_file.read() # Read what's in it
+                        print(f"header string: {header_string}")
+                        header = [int(i) for i in re.findall(pattern, header_string)] # turn string back to a list (except the file name)
+                        
+                        file_path = re.findall(r'[^,]+$', header_string)[0] # Retrieve the file path
+                        print(f"file path: {file_path}")
+                        header.append(file_path) # add the file path
+                        print(f"header: {header}")
+
+                        if (header[2] + 1) == header[3]:
+                            # Get the file name
+                            filename_pattern = '[^/]+$' # Match any 1 or more characters that is not a forward slash till the end of the string
+                            file_name = re.search(filename_pattern, file_path).group()
+                            print(f"file name {file_name}")
+                            handle_files.binary_to_file(file_name, file_data)
+                            print("file created")
+                            print("Exiting...")
+                            return True
 
                     except (KeyboardInterrupt, ConnectionResetError):
                         print(f"[Disconnected] connection closed\n")
@@ -227,6 +338,8 @@ def start():
         print("\nCouldn\'t connect\n") """
 
 threading.Thread(target=start, daemon=True).start()
+# threading.Thread(target=lambda: rm_temp_dir(temp_dir), daemon=True).start()
+# start()
 """ with open(temp_header_file, "r+") as header_file, open(temp_binary_file, "a+") as binary_file:
     print("Going to the beginning of the binary file")
     binary_file.seek(0) # Go to the beginning of the file
@@ -248,15 +361,20 @@ threading.Thread(target=start, daemon=True).start()
     print(f"file name {file_name}")
     handle_files.binary_to_file(file_name, file_data)
     print("file created") """
-
-
+# while True:
+#     rm_temp_dir(temp_dir)
+#     break
+# if delete == 1:
+#     rm_temp_dir(temp_dir)
+#     print("folder deleted")
 # So long as there's no KeyboardInterrupt, it will continue to listen
 try:
-    user = input("")
+    user = input("Press Ctrl + C to quit\n")
     while user != KeyboardInterrupt:
-        user = input("")
+        user = input("Press Ctrl + C to quit\n")
 except KeyboardInterrupt:
-    print("Exiting...")
+    rm_temp_dir(temp_dir)
+    print("Quiting...")
     quiting = True
 
 """ import socket
