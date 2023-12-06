@@ -62,7 +62,7 @@ def file_to_binary(received_file = None):
     root.wm_attributes('-topmost', 1)
     root.withdraw()
 
-    if received_file not in ["_", "-", ""] and type(received_file) == tuple:
+    if received_file not in ["_", "-", ""]:
         # Get the file path and the file name
         file_path = received_file
     else:
@@ -307,42 +307,17 @@ def send_data(client, addr, request):
     print("[File] Getting the file to be sent")
     (file_path, file_name), file_data, checksum, hash_value = file_to_binary(file_path)
 
-    # Send the file name
-    # message = pickle.dumps(file_name)
-    # print(f"[Encode] pickled the file name: {file_name}")
-    # client_socket.send(message)
-    # print(f"[Send] sent the file name")
-    
-    # data_length = len(file_data)
-    # max_packets = int(data_length / 8) if data_length % 8 == 0 else data_length / 8
-
-    # Regex patterns to find or assemble necessary information of a string.
-    # source = '^(?P<src>\d{16})'
-    # destination = '(?P<dst>\d{16})'
-    # packet_number = '(?P<pkt_num>\d{32})'
-    # total_packets = '(?P<tot_pkt>\d{32})'
-    # acknowledged_data = '(?P<ack_dat>\d{32})'
-    # dataoffset = '(?P<doffset>\d{16})'
-    # window = '(?P<win>\d{16})'
-    # crc32 = '(?P<crc32>\d{32})'
-    # data = '(?P<dat>.*)$'
-
     source = PORT # source port
     destination = client_addr[1] # destination port
-    # ack_dat = acknowledged_data
     dataoffset = 192
-    # win = int(window) # if window <= 65535 else 0
     crc32 = checksum
-    # data = "".join(format(ord(character), 'b') for character in file_name)
 
     # Prepare the packets
     print("[Packets] preparing to get packets")
     packets = packets_list(file_data, window=window)
     total_packets = len(packets)
     print(f"[Packets] packets length: {total_packets}")
-    # pkt_num = packet_number
 
-    # aspat_binary_header_string = binary_padding((src, 16), (dst, 16), (pkt_num, 32), (tot_pkt, 32), (ack_dat, 32), (doffset, 16), (win, 16), (crc32, 32))
     header = [source, destination, packet_number, total_packets, acknowledged_data, dataoffset, window, crc32, file_path]
 
     print(f"\n[ASPAT header] created the header: \nsource: {source}, destination: {destination}, packet_number: {packet_number}, total_packets: {total_packets}, acknowledged_data: {acknowledged_data}, dataoffset: {dataoffset}, window: {window}, crc32: {crc32}, file_path: {file_path}")
@@ -381,11 +356,11 @@ def send_data(client, addr, request):
             try:
                 client_socket.send(message)
                 print(f"[Sent] Sent {message}")
-            except (ConnectionResetError, ConnectionAbortedError):
+            except (KeyboardInterrupt, ConnectionResetError, ConnectionAbortedError):
                 return            
             
             print(f"[Packet count] Sent {(packet + 1)} of {total_packets}\n\n")
-            time.sleep(random.randint(1, 3))
+            time.sleep(random.randint(1, 2))
     else:
         # For reliable data transfer
         print("\n[Transfer type] Data transfer is reliable\n")
@@ -401,50 +376,20 @@ def send_data(client, addr, request):
 
             try:
                 client_socket.send(message)
-                print("[Sent] Sent the message")
+                print(f"[Sent] Sent {message}")
             except (KeyboardInterrupt, ConnectionResetError, ConnectionAbortedError):
                 return
             
             print(f"[Packet count] Sent {(packet + 1)} of {total_packets}\n\n")
-            time.sleep(random.randint(1, 3))
             
             print("\n" + (" " * 5) + ("-" * 10) + (" " * 5))
-            # ack_dat = client_socket.recv(2048) # Receive the ack
             try:
-                ack_dat = client_socket.recv(2048)
-                ack_dat = pickle.loads(ack_dat)
-                source, destination, packet, total_packets, acknowledged_data, dataoffset, window, crc32, file_path = ack_dat
+                header = client_socket.recv(2048)
+                header = pickle.loads(header)
+                source, destination, packet, total_packets, acknowledged_data, dataoffset, window, crc32, file_path = header
                 print(f"[Acknowledgement] source: {source}, destination: {destination}, packet: {packet}, total_packets: {total_packets}, acknowledged_data: {acknowledged_data}, dataoffset: {dataoffset}, window: {window}, crc32: {crc32}, file_path: {file_path}")
                 print((" " * 5) + ("-" * 10) + (" " * 5) + "\n")
             except (KeyboardInterrupt, ConnectionResetError, ConnectionAbortedError):
                 return
-
-            # aspat_binary_header_string = binary_padding((src, 16), (dst, 16), (pkt_num, 32), (tot_pkt, 32), (ack_dat, 32), (doffset, 16), (win, 16), (crc32, 32))
-
-# def packet_list(file_data):
-#     length = len(file_data)
-#     packets = int(length / 8) if length % 8 == 0 else length / 8
-
-# Regex patterns to find or assemble necessary information of a string.
-# source = '^(?P<src>\d{16})'
-# destination = '(?P<dst>\d{16})'
-# packet_number = '(?P<pkt_num>\d{32})'
-# total_packets = '(?P<tot_pkt>\d{32})'
-# acknowledged_data = '(?P<ack_dat>\d{32})'
-# doffset = '(?P<doffset>\d{16})'
-# window = '(?P<win>\d{16})'
-# crc32 = '(?P<crc32>\d{32})'
-# data = '(?P<dat>.*)$'
-
-# src = 0
-# dst = 0
-# pkt_num = 0
-# tot_pkt = 0
-# ack_dat = 0
-# doffset = 0
-# win = 0
-# crc32 = 0
-
-# aspat_packet_pattern = source + destination + packet_number + total_packets + acknowledged_data + doffset + window + crc32 + data
-# bin_data = get_data_in_binary()
-# aspat_binary_header_string = binary_padding((src, 16), (dst, 16), (pkt_num, 32), (tot_pkt, 32), (ack_dat, 32), (doffset, 16), (win, 16), (crc32, 32)) + bin_data
+            
+            time.sleep(random.randint(1, 2))
