@@ -5,6 +5,7 @@ import handle_files
 import pickle
 
 PC = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# IP = socket.gethostbyname(socket.gethostname())
 IP = "172.20.10.2"
 PORT = 3542
 FORMAT = "utf-8"
@@ -51,7 +52,7 @@ quiting = False
 
 def listening():
     while not quiting:
-        print("[Listening] . . .")
+        print(f"[Listening] {IP}. . .")
         client = PC.accept()
         print(f"[Connected] new client, {client[1][0]}\n")
         try:

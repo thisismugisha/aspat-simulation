@@ -22,6 +22,26 @@ FORMAT = "utf-8"
 HEADER = 2048
 DISCONNECT = "DISCONNECT"
 
+ip_pattern = r"^((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])(\.(?!$)|$)){4}$"
+correct_ip = False
+while not correct_ip:
+    try:
+        user_ip = str(input(f"Is the server's IP address {IP}? If yes, input 1[one]. If not, input the address: "))
+        if user_ip in ["1", 1]:
+            correct_ip = True
+            break
+        else:
+            correct = re.search(ip_pattern, user_ip)
+            if correct:
+                IP = user_ip
+                correct_ip = True
+                break
+            else:
+                print("Your input was incorrect")
+    except ValueError:
+        print("Your input was incorrect")
+        continue
+
 quiting = False
 
 def rm_temp_dir(temp_dir):
@@ -29,8 +49,6 @@ def rm_temp_dir(temp_dir):
     does_exist = os.path.isfile(delete_order)
     while not does_exist:
         does_exist = os.path.isfile(delete_order)
-    
-    # print(f"The delete order does exist: {does_exist}")
 
     with open(delete_order, "r") as delete_file:
         while not deleted:
@@ -44,41 +62,6 @@ def rm_temp_dir(temp_dir):
     print("deleting the temporary folder")
     shutil.rmtree(temp_dir)
     print("deleted")
-
-""" def previous_transfer(header_file, binary_file):
-    print("Going to the beginning of the binary file")
-    binary_file.seek(0) # Go to the beginning of the file
-    file_data = binary_file.read() # Read from the beginning
-    print(f"file data: {file_data}")
-    
-    # print("Reading the header file")
-    # header_string = header_file.read() # Read what's in it
-    # print(f"header string: {header_string}")
-    # header = [int(i) for i in re.findall(pattern, header_string)] # turn string back to a list (except the file name)
-
-    print("[Header] reading the header file")
-    header_string = header_file.read() # Read what's in it
-    print(f"header string: {header_string}")
-    header = [int(i) for i in re.findall(pattern, header_string)] # turn string back to a list (except the file name)
-    
-    file_path = re.findall(r'[^,]+$', header_string)[0] # Retrieve the file path
-    print(f"file path: {file_path}")
-    header.append(file_path) # add the file path
-    print(f"header: {header}")
-
-    if (header[2] + 1) == header[3]:
-        # Get the file name
-        filename_pattern = '[^/]+$' # Match any 1 or more characters that is not a forward slash till the end of the string
-        file_name = re.search(filename_pattern, file_path).group()
-        print(f"file name {file_name}")
-        handle_files.binary_to_file(file_name, file_data)
-        print("file created")
-
-        delete = input("Delete the temporary file? [0] for no, [1] for yes")
-        if delete == 1:
-            rm_temp_dir(temp_dir)
-        return True
-    return header """
 
 def start():
     os.makedirs(os.path.dirname(temp_dir), exist_ok=True) # create/open temporary directory
@@ -170,7 +153,6 @@ def start():
                                         try:
                                             header_file.seek(0)
                                             old_header = header_file.read()
-                                            # print(f"Old header: {len(old_header)}")
                                         except KeyboardInterrupt:
                                             header_file.write(old_header)
                                             
@@ -192,7 +174,6 @@ def start():
                                         try:
                                             header_file.seek(0)
                                             old_header = header_file.read()
-                                            # print(f"Old header: {len(old_header)}")
                                         except KeyboardInterrupt:
                                             header_file.write(old_header)
 
@@ -207,7 +188,6 @@ def start():
                                         try:
                                             header_file.seek(0)
                                             old_header = header_file.read()
-                                            # print(f"\nNew header: {len(old_header)}\n")
                                         except KeyboardInterrupt:
                                             header_file.write(old_header)
 
@@ -222,7 +202,6 @@ def start():
                                         try:
                                             header_file.seek(0)
                                             old_header = header_file.read()
-                                            # print(f"Old header: {len(old_header)}")
                                         except KeyboardInterrupt:
                                             header_file.write(old_header)
                                             
@@ -240,7 +219,6 @@ def start():
                                         try:
                                             header_file.seek(0)
                                             old_header = header_file.read()
-                                            # print(f"Old header: {len(old_header)}")
                                         except KeyboardInterrupt:
                                             header_file.write(old_header)
 
@@ -255,7 +233,6 @@ def start():
                                         try:
                                             header_file.seek(0)
                                             old_header = header_file.read()
-                                            # print(f"\nNew header: {len(old_header)}\n")
                                         except KeyboardInterrupt:
                                             header_file.write(old_header)
 
@@ -299,17 +276,6 @@ def start():
                 return
 
             # --------------------------------------- data file ---------------------------------------
-            """ print("\nreading the binary file")
-            binary_file.seek(0) # Go to the beginning of the file
-            file_data = binary_file.read() # Read from the beginning
-            print(f"binary file: {file_data}\n")
-
-            binary_file.seek(0, 2) # Go to the end of the file
-            binary_file.write(str(input("Write what you wanna add to the binary file: "))) # Append new content at the end of the file
-            print("added to the binary")
-            binary_file.seek(0) # Go to the beginning of the file
-            file_data = binary_file.read() # Read from the beginning
-            print(f"new binary file: {file_data}\n") """
     else:        
         with open(temp_header_file, "w") as header_file, open(temp_binary_file, "x"):
             header_ = [0, 0, 0, 0, 0, 192, 3, 0, "_"]
