@@ -53,21 +53,18 @@ def rm_temp_dir(temp_dir):
     with open(delete_order, "r") as delete_file:
         while not deleted:
             delete_file.seek(0)
-            delete = int(delete_file.read())
-            print(f"\nDelete order: {delete}")
+            delete = delete_file.read()
             time.sleep(0.5)
-            if delete == 1:
+            if delete in [1, "1"]:
                 deleted = True
-                # return deleted
-    print("deleting the temporary folder")
+
     shutil.rmtree(temp_dir)
-    print("deleted")
 
 def start():
-    os.makedirs(os.path.dirname(temp_dir), exist_ok=True) # create/open temporary directory
-    print("[Temporary directory] it exists now")
+    os.makedirs(os.path.dirname(temp_dir), exist_ok=True) # create/open temporary 
+    # print("[Temporary directory] it exists now")
 
-    # def open_temp_files(exists):
+    
     exists = os.path.isfile(temp_header_file) and os.path.isfile(temp_binary_file) # check if there are temporary header and binary files
 
     if exists:
@@ -79,28 +76,21 @@ def start():
             print("[Data] reading the binary file")
             binary_file.seek(0) # Go to the beginning of the file
             file_data = binary_file.read() # Read from the beginning
-            print(f"file data: {file_data}")
 
             print("[Header] reading the header file")
             header_file.seek(0) # Go to the beginning of the file
             header_string = header_file.read() # Read what's in it
-            print(f"header string: {header_string}")
             header = [int(i) for i in re.findall(pattern, header_string)] # turn string back to a list (except the file name)
             
             file_path = re.findall(r'[^,]+$', header_string)[0] # Retrieve the file path
-            print(f"file path: {file_path}")
             header.append(file_path) # add the file path
-            print(f"header: {header}")
 
             if (header[2] + 1) == header[3]:
                 # Get the file name
                 filename_pattern = '[^/]+$' # Match any 1 or more characters that is not a forward slash till the end of the string
                 file_name = re.search(filename_pattern, file_path).group()
-                print(f"file name {file_name}")
                 handle_files.binary_to_file(file_name, file_data)
-                print("file created")
                 delete_file.write("1")
-                print("Exiting...")
                 return True
             
             print("[Header] Unpacking the header")
@@ -128,7 +118,6 @@ def start():
                         except (KeyboardInterrupt, ConnectionResetError):
                             connected = False
                             print(f"[Disconnected] connection closed")
-                            rm_temp_dir(temp_dir)
                             return
 
                         if received:
@@ -136,7 +125,6 @@ def start():
                             if received == DISCONNECT:
                                 connected = False
                                 print(f"[Disconnected] connection closed")
-                                rm_temp_dir(temp_dir)
                                 return
 
                             else:
@@ -166,9 +154,7 @@ def start():
                                         
                                         # Update the header file
                                         header_list = [source, destination, packet_number, total_packets, acknowledged_data, dataoffset, window, crc32, file_path]
-                                        print("Created the header list")
                                         header = ",".join(str(s) for s in header_list)
-                                        print("Turned the list to a string")
                                         
                                         # Make sure the old header content are not deleted
                                         try:
@@ -178,11 +164,8 @@ def start():
                                             header_file.write(old_header)
 
                                         header_file.truncate(0) # Delete what was in it
-                                        print("Deleted what was in it")
                                         header_file.seek(0) # Go to the beginning of the file
-                                        print("Put cursor at the beginning of the file")
                                         header_file.write(header) # Write new content
-                                        print("Wrote the new header")
                                         
                                         # Make sure the old header content are not deleted
                                         try:
@@ -211,9 +194,7 @@ def start():
                                         
                                         # Update the header file
                                         header_list = [source, destination, packet_number, total_packets, acknowledged_data, dataoffset, window, crc32, file_path]
-                                        print("Created the header list")
                                         header = ",".join(str(s) for s in header_list)
-                                        print("Turned the list to a string")
                                         
                                         # Make sure the old header content are not deleted
                                         try:
@@ -223,11 +204,8 @@ def start():
                                             header_file.write(old_header)
 
                                         header_file.truncate(0) # Delete what was in it
-                                        print("Deleted what was in it")
                                         header_file.seek(0) # Go to the beginning of the file
-                                        print("Put cursor at the beginning of the file")
                                         header_file.write(header) # Write new content
-                                        print("Wrote the new header")
                                         
                                         # Make sure the old header content are not deleted
                                         try:
@@ -243,28 +221,21 @@ def start():
                         print("[Data] reading the binary file")
                         binary_file.seek(0) # Go to the beginning of the file
                         file_data = binary_file.read() # Read from the beginning
-                        print(f"file data: {file_data}")
 
                         print("[Header] reading the header file")
                         header_file.seek(0) # Go to the beginning of the file
                         header_string = header_file.read() # Read what's in it
-                        print(f"header string: {header_string}")
                         header = [int(i) for i in re.findall(pattern, header_string)] # turn string back to a list (except the file name)
                         
                         file_path = re.findall(r'[^,]+$', header_string)[0] # Retrieve the file path
-                        print(f"file path: {file_path}")
                         header.append(file_path) # add the file path
-                        print(f"header: {header}")
 
                         if (header[2] + 1) == header[3]:
                             # Get the file name
                             filename_pattern = '[^/]+$' # Match any 1 or more characters that is not a forward slash till the end of the string
                             file_name = re.search(filename_pattern, file_path).group()
-                            print(f"file name {file_name}")
                             handle_files.binary_to_file(file_name, file_data)
-                            print("file created")
                             delete_file.write("1")
-                            print("Exiting...")
                             return True
 
                     except (KeyboardInterrupt, ConnectionResetError):
