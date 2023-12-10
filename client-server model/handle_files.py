@@ -30,7 +30,6 @@ def binary_padding(*args):
     for arg in args:
         counter += 1
         binary, bit_number = arg # Unload the elements to start using them.
-        # binary = bin(binary).replace("0b", "") # Turn the integer into binary and remove 0b from front of the string
 
         # Sanity check first. Calculate the largest possible integer given the bit word
         max_possible_value = "1" * bit_number
@@ -141,52 +140,33 @@ def binary_to_file(file_name, file_data, checksum = None, hash_value = None):
         # Write the bytearray to the file
         file.write(bytes_array)
 
-    # Or print the hash and checksum values
-    # Generate a CRC32 checksum
-    # byte_file_data = bytes(file_data, 'utf-8')
-    # checksum = str(binascii.crc32(byte_file_data))
     if checksum:
         print(f"Checksum: {checksum}")
 
-    # Generate a SHA256 hash value
-    # encoded_file_data = file_data.encode('utf-8') # Encode the string
-    # hash_value = str(hashlib.sha256(encoded_file_data).hexdigest()) # Generate the hash
     if hash_value:
         print(f"Hash value: {hash_value}")
-
-    # Or store the hash value of the file data in a text file
-    """ with open("file hash value.txt", 'w') as file:
-        file.write(hash_value)
-        file.write(bin(hash_value).replace("0b", "")) """
     
 def packets_list(file_data, window = None):
     packets = []
     max_packets = []
 
-    # print(f"[File data] Dividing the file data into 8-bit packets")
     while file_data != "":
         first_eight = file_data[:8]
         max_packets.append(first_eight)
         file_data = file_data[8:]
 
     packet = ""
-    # print(f"max_packets: {len(max_packets)}, window: {window}\n")
     if window > 0:
         while max_packets:
             for i in range(window):
-                # if max_packets:
                 packet += max_packets[0]
-                # print(f"max_packets: {len(max_packets)}")
                 max_packets.pop(0)
                 if len(max_packets) == 0:
                     break
-                # print(f"Packet: {packet}, max_packets: {len(max_packets)}")
             
-            # print(f"Final packet: {packet}, max_packets: {len(max_packets)}")
             packets.append(packet)
             packet = ""
     else:
-        # print(f"[Results] Returning max_packets list: ")
         return max_packets
     
     print("[Results] Returning packets list")
@@ -225,7 +205,6 @@ def process_header(received_data):
             crc32 = int(match.group('crc32'), 2)
             data = match.group('dat')
             
-            # return (f"\nsource: {source}, \ndestination: {destination}, \npacket_number: {packet_number}, \ntotal_packets: {total_packets}, \nacknowledged_data: {acknowledged_data}, \ndataoffset: {dataoffset}, \nwindow: {window}, \ncrc32: {crc32}, \ndata: {data}")
             return (source, destination, packet_number, total_packets, acknowledged_data, dataoffset, window, crc32, data)
 
 def recv_data(client, header = None, file_data = None, file_name = None):
@@ -241,52 +220,14 @@ def recv_data(client, header = None, file_data = None, file_name = None):
         if received_data:
             print(f"[Received] {received_data}")
             received_data = pickle.loads(received_data)
-            # print(f"Unpickled: {len(received_data)} {received_data}")
-            # print(f"Unpickled: {pickle.loads(received_data)}")
-
+            
             processed_data = process_header(received_data)
             if processed_data == "DISCONNECT":                
                 client_socket.close()
                 client_socket.send(pickle.dumps("DISCONNECT"))
 
-            # print(f"Unpickled {received_data}")
             return received_data
-
-            """ if received_data == "DISCONNECT":
-                client_socket.close()
-                client_socket.send(pickle.dumps("DISCONNECT"))
-                return "DISCONNECT"
-            
-            elif type(received_data) == tuple:
-                return received_data
-            
-            elif type(received_data) == str:
-                source = '^(?P<src>\d{16})'
-                destination = '(?P<dst>\d{16})'
-                packet_number = '(?P<pkt_num>\d{32})'
-                total_packets = '(?P<tot_pkt>\d{32})'
-                acknowledged_data = '(?P<ack_dat>\d{32})'
-                dataoffset = '(?P<doffset>\d{16})'
-                window = '(?P<win>\d{16})'
-                crc32 = '(?P<crc32>\d{32})'
-                data = '(?P<dat>.*)$'
-
-                aspat_packet_pattern = source + destination + packet_number + total_packets + acknowledged_data + dataoffset + window + crc32 + data
-
-                match = re.search(aspat_packet_pattern, received_data)
-                
-                if match:
-                    source = int(match.group('src'))
-                    destination = int(match.group('dst'))
-                    packet_number = int(match.group('pkt_num'))
-                    total_packets = int(match.group('tot_pkt'))
-                    acknowledged_data = int(match.group('ack_dat'))
-                    dataoffset = int(match.group('doffset'))
-                    window = int(match.group('win'))
-                    crc32 = int(match.group('crc32'))
-                    data = match.group('dat')
-                    
-                    return (source, destination, packet_number, total_packets, acknowledged_data, dataoffset, window, crc32, data) """
+        
         else:
             print("Nothing has been received") 
     except (ConnectionResetError, ConnectionAbortedError):
@@ -322,19 +263,8 @@ def send_data(client, addr, request):
 
     print(f"\n[ASPAT header] created the header: \nsource: {source}, destination: {destination}, packet_number: {packet_number}, total_packets: {total_packets}, acknowledged_data: {acknowledged_data}, dataoffset: {dataoffset}, window: {window}, crc32: {crc32}, file_path: {file_path}")
         
-    # print(f"    source: {source}")
-    # print(f"    destination: {destination}")
-    # print(f"    packet_number: {packet_number}")
-    # print(f"    total_packets: {total_packets}")
-    # print(f"    acknowledged_data: {acknowledged_data}")
-    # print(f"    dataoffset: {dataoffset}")
-    # print(f"    window: {window}")
-    # print(f"    crc32: {crc32}")
-    # print(f"    file_name: {file_path}")
-
     # Send the file name
     message = pickle.dumps(header)
-    # print(f"[ASPAT header] pickled the header")
     client_socket.send(message)
     print(f"[ASPAT header] pickled and sent the header: {len(message)} {message}")
 
